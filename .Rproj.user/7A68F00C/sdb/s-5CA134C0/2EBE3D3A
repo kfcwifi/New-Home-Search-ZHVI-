@@ -1,0 +1,17 @@
+{
+    "contents" : "\n#        Ranking Functions\n# These functions take in the raw data and \n# determine the best regions to live in\n\n#\n# slopePRE  = slope of ZHVI prior to housing crash\n# slopePOST = slope of ZHVI after housing crash\n#----------------------------------------------------------\n\nsort.data.frame <- function(x, decreasing=FALSE, by=1, ... ){\n  f <- function(...) order(...,decreasing=decreasing)\n  i <- do.call(f,x[by])\n  x[i,,drop=FALSE]\n}\n\nRank_zips <- function(avg_data) {\n  D <- t(avg_data)    # Transpose Data\n  Zips <- D[1,]       # Pull off the ZipCodes\n  CSM <- D[2:4,]      # Pull off City,State,Metro\n  D <- D[-1:-4,]      # Take away categorical data\n  class(D)<-\"numeric\"\n  \n  Yearz <- as.numeric(rownames(D))\n  output <- matrix(ncol=3, nrow=length(Zips))\n      for (i in seq_len(NCOL(D))) {\n        ff <- D[,i] ~ Yearz\n        Fit <- lm(ff)\n        output[i,1]<-summary(Fit)$coefficients[2]\n        PostCrash <- D[-1:-15,i] ~ Yearz[-1:-15]\n        PC <- lm(PostCrash)\n        output[i,2]<-summary(PC)$coefficients[2]\n      }\n  \n  output[,3]<-t(colMeans(D,na.rm =TRUE))\n  output <- data.frame(output)      # Turn matrix into a dataframe\n  rownames(output)<-Zips            # Update column names to be Zipcodes\n  colnames(output)<- c(\"slopePRE\",\"slopePOST\",\"avgZHVI\")\n  output<-cbind(output,t(CSM))      # Add in columns with city,state,metro\n  output<-sort(output,by=\"slopePOST\",decreasing=TRUE)\n  invisible(output)\n\n}",
+    "created" : 1439589892727.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "396907488",
+    "id" : "2EBE3D3A",
+    "lastKnownWriteTime" : 1439590709,
+    "path" : "C:/Users/Kelvin/Desktop/R - Programming/New-Home-Search-ZHVI-/Ranking Functions.R",
+    "project_path" : "Ranking Functions.R",
+    "properties" : {
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "type" : "r_source"
+}
