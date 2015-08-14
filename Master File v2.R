@@ -8,7 +8,7 @@
 
 
 library(data.table)
-source("Ranking Functions.R")
+source("Ranking Functions v2.R")
 metro = 'Orlando' # Metro area of Interest
 ZHVI <- fread("http://files.zillowstatic.com/research/public/Zip/Zip_Zhvi_AllHomes.csv")
 
