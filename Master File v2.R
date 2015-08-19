@@ -4,34 +4,48 @@
 #   This code looks at a user-defined metro area
 #   and determines the best area for investment
 #--------------------------------------------------
-# Data Courtesy of Zillow Real Estate Research (http://www.zillow.com/research/)
+# Data Courtesy of 
+# Zillow Real Estate Research (http://www.zillow.com/research/)
+# Census.gov 
+# http://www.census.gov/econ/cbp/download/noise_layout/ZIP_Totals_Layout10.txt
 
+metro  <- 'Orlando' # Metro area of Interest
+# county <- ''
+source("Ranking Functions v2.R")
 
 library(data.table)
-source("Ranking Functions v2.R")
-metro = 'Orlando' # Metro area of Interest
 ZHVI <- fread("http://files.zillowstatic.com/research/public/Zip/Zip_Zhvi_AllHomes.csv")
+temp <- tempfile()
 
-Matches<-grepl(metro,ZHVI$Metro) # Logical with matches to the Metro
-cat(sum(Matches,na.rm = TRUE),"Matches in the Metro",metro)
+download.file("ftp://ftp.census.gov/econ2013/CBP_CSV/zbp13totals.zip",temp, mode="wb")
+unzip(temp, "zbp13totals.txt")
+EMPLOY13 <- fread("zbp13totals.txt", sep=",")
 
+download.file("ftp://ftp.census.gov/econ2012/CBP_CSV/zbp12totals.zip",temp, mode="wb")
+unzip(temp, "zbp12totals.txt")
+EMPLOY12 <- fread("zbp12totals.txt", sep=",")
+
+download.file("ftp://ftp.census.gov/econ2011/CBP_CSV/zbp11totals.zip",temp, mode="wb")
+unzip(temp, "zbp11totals.txt")
+EMPLOY11 <- fread("zbp11totals.txt", sep=",")
+
+if (exists("metro")){
+  Matches<-grepl(metro,ZHVI$Metro) # Logical with matches to the Metro
+  cat(sum(Matches,na.rm = TRUE),"Matches in the Metro",metro)
+} else if (exists("county")) {
+  Matches<-grepl(county,ZHVI$CountyName) # Logical with matches to the Metro
+  cat(sum(Matches,na.rm = TRUE),"Matches in the County",county)
+}
+
+# Manipulate the ZHVI data
 Matched_subset <- ZHVI[Matches]
-Data <- Matched_subset[,6:236,with=FALSE]
+avg_data<-Yearly_Avg(Matched_subset)
 
-# apply opertations to find yearly averages
-start <- substring(names(Data)[1],1,4)
-end   <- substring(names(Data)[length(Data)],1,4)
-yr <- as.character(start:end)
-
-indices <- lapply(yr,grepl,names(Data))               # Find indicies pertaining to yr
-avg_data<-data.table(Matched_subset[,1:4,with=FALSE]) # Initialize avg_data table
-
-    for (i in seq_len(NROW(indices))) {
-     yy<-data.matrix(Data[,indices[[i]],with=FALSE])  # For each year, grab all the months
-     avg_data[,yr[i]]<-rowMeans(yy)                   # Average all the months for that year
-    }
-
-# Identify the Best RegionName (Zip-code) to live in 
+# Take Zipcodes and apply regressions to observe ZHVI metrics
 Output <- Rank_zips(avg_data)
-Output<-sort(output,by="slopePOST",decreasing=TRUE)
 
+# Dig for Employment data that corresponds to ZHVI data (avg_data) 
+combined <- Employment_Crunch(EMPLOY11,EMPLOY12,EMPLOY13,avg_data)
+
+# Combine Employment data with ZHVI data
+Result <- Inject_Employment(Output,combined)
